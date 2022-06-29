@@ -6,10 +6,10 @@
 #include <sstream>
 
 std::string createtmpfile(void){
-	char *name2 = std::tmpnam(NULL);
-	std::ofstream ftocreate(name2);
+	char *tmpfname = std::tmpnam(NULL);
+	std::ofstream ftocreate(tmpfname);
 	ftocreate.close();
-	return std::string(name2);
+	return std::string(tmpfname);
 }
 
 std::string get_file_content(std::string filename)
@@ -36,7 +36,7 @@ std::string joinstr(std::string *strs,int n){
 
 int runbin(std::string bin, std::string arg, std::string filename)
 {
-	std::string payload[] = {bin, " ",arg, " > ", filename};
+	std::string payload[] = {"exec cgi ", bin, " ",arg, " > ", filename};
 	int size = *(&payload + 1) - payload;
 
 	std::string cmd = joinstr(payload,size);
@@ -51,6 +51,7 @@ std::string cgi(std::string bin,std::string arg){
 	
 	runbin(bin,arg,outfile);
 
+
 	std::string out = get_file_content(outfile);
 
 	return out;
@@ -59,7 +60,20 @@ std::string cgi(std::string bin,std::string arg){
 int main(int argc, char const *argv[])
 {
 	putenv("HOME=/ooga");
-
+	putenv("REDIRECT_STATUS=200"); //Security needed to execute php-cgi
+	putenv("GATEWAY_INTERFACE=CGI/1.1");
+	putenv("SCRIPT_NAME=hello");
+	putenv("SCRIPT_FILENAME=hello.php");
+	putenv("REQUEST_METHOD=GET");
+	putenv("CONTENT_LENGTH=10000");
+	putenv("CONTENT_TYPE=text/html");
+	putenv("PATH_INFO=PATHINFO"); //might need some change, using config path/contentLocation
+	// this->_env["PATH_TRANSLATED"]=request.getPath()); //might need some change, using config path/contentLocation
+	// this->_env["QUERY_STRING"]=request.getQuery());
+	// this->_env["REMOTEaddr"]=to_string(config.getHostPort().host));
+	// this->_env["REMOTE_IDENT"]=headers["Authorization"]);
+	// this->_env["REMOTE_USER"]=headers["Authorization"]);
+	putenv("REQUEST_URI=/hello.php");
 	std::cout << cgi(std::string(argv[1]),std::string(argv[2])) << std::endl;
 
 
