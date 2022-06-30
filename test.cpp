@@ -4,8 +4,10 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <sys/types.h>
+#include <unistd.h>
 
-std::string createtmpfile(void){
+std::string create_tmpfile(void){
 	char *tmpfname = std::tmpnam(NULL);
 	std::ofstream ftocreate(tmpfname);
 	ftocreate.close();
@@ -34,46 +36,48 @@ std::string joinstr(std::string *strs,int n){
 }
 
 
-int runbin(std::string bin, std::string arg, std::string filename)
+int run_bin(std::string bin,std::string infilename ,std::string outfilename)
 {
-	std::string payload[] = {"exec cgi ", bin, " ",arg, " > ", filename};
+	std::string payload[] = {"cat ", infilename, " | " ,bin, " > ", outfilename};
 	int size = *(&payload + 1) - payload;
 
 	std::string cmd = joinstr(payload,size);
-	
+
 	return system(cmd.c_str());
 }
 
+int write_infile(std::string infile, std::string body){
+	return system(("echo " + body + " > " + infile ).c_str());	
+}
 
-std::string cgi(std::string bin,std::string arg){
-	
-	std::string outfile = createtmpfile();
-	
-	runbin(bin,arg,outfile);
 
+std::string cgi(std::string bin,std::string body){
+	
+	std::string outfile = create_tmpfile();
+	std::string infile = create_tmpfile();
+
+	write_infile(infile,body);
+
+	run_bin(bin, infile, outfile);
 
 	std::string out = get_file_content(outfile);
+
+	remove(infile.c_str());
+	remove(outfile.c_str());
 
 	return out;
 }
 
 int main(int argc, char const *argv[])
 {
-	putenv("HOME=/ooga");
-	putenv("REDIRECT_STATUS=200"); //Security needed to execute php-cgi
-	putenv("GATEWAY_INTERFACE=CGI/1.1");
-	putenv("SCRIPT_NAME=hello");
-	putenv("SCRIPT_FILENAME=hello.php");
-	putenv("REQUEST_METHOD=GET");
-	putenv("CONTENT_LENGTH=10000");
-	putenv("CONTENT_TYPE=text/html");
-	putenv("PATH_INFO=PATHINFO"); //might need some change, using config path/contentLocation
-	// this->_env["PATH_TRANSLATED"]=request.getPath()); //might need some change, using config path/contentLocation
-	// this->_env["QUERY_STRING"]=request.getQuery());
-	// this->_env["REMOTEaddr"]=to_string(config.getHostPort().host));
-	// this->_env["REMOTE_IDENT"]=headers["Authorization"]);
-	// this->_env["REMOTE_USER"]=headers["Authorization"]);
-	putenv("REQUEST_URI=/hello.php");
+	char *env[] = {"CONTENT_LENGTH=15","CONTENT_TYPE=application/x-www-form-urlencoded","GATEWAY_INTERFACE=CGI/1.1","PATH_INFO=/post.php","PATH_TRANSLATED=/post.php","QUERY_STRING=","REDIRECT_STATUS=200","REMOTE_IDENT=","REMOTE_USER=","REMOTEaddr=0","REQUEST_METHOD=POST","REQUEST_URI=/post.php","SCRIPT_FILENAME=./post.php","SCRIPT_NAME=./post.php","SERVER_NAME=0","SERVER_PORT=8000","SERVER_PROTOCOL=HTTP/1.1","SERVER_SOFTWARE=Weebserv/1.0"};
+	int size = *(&env + 1) - env;
+
+	for (size_t i = 0; i < size; i++)
+	{
+		putenv(env[i]);
+	}
+
 	std::cout << cgi(std::string(argv[1]),std::string(argv[2])) << std::endl;
 
 
