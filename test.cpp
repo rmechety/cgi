@@ -101,7 +101,7 @@ int write_infile(std::string infile, std::string body)
  * @return The output of the cgi script.
  */
 
-std::string cgi(std::string bin, std::string body)
+std::string cgi_execution(std::string bin, std::string body)
 {
 
 	std::string outfile = create_tmpfile();
@@ -118,6 +118,58 @@ std::string cgi(std::string bin, std::string body)
 
 	return out;
 }
+
+std::string tostr(int k)
+{
+	std::stringstream ss;
+	ss << k;
+	std::string s;
+	ss >> s;
+
+	return s;
+}
+
+std::string get_sub_str(std::string str, int pos)
+{
+	return str.substr((pos != std::string::npos) ? pos : 0);
+}
+
+void set_environement(request req)
+{
+
+	putenv((char *)("CONTENT_LENGTH= " + tostr(req.request_body.length())).c_str());
+	putenv((char *)("CONTENT_TYPE=application/x-www-form-urlencoded"));
+
+	putenv((char *)("GATEWAY_INTERFACE=CGI/1.1"));
+
+	std::string pathinf = get_sub_str(req.path, req.path.find_last_of("/"));
+	putenv((char *)("PATH_INFO=" + pathinf).c_str());
+	putenv((char *)("PATH_TRANSLATED=" + pathinf).c_str());
+
+	std::string query = get_sub_str(req.path, req.path.find_first_of("?"));
+	putenv((char *)("QUERY_STRING=" + query).c_str());
+
+	putenv((char *)("REDIRECT_STATUS=200"));
+
+	putenv((char *)("REMOTE_IDENT="));
+	putenv((char *)("REMOTE_USER="));
+	putenv((char *)("REMOTEaddr=0"));
+
+	putenv((char *)("REQUEST_METHOD=" + req.methods).c_str());
+	putenv((char *)("REQUEST_URI=/post.php"));
+
+	putenv((char *)("SCRIPT_FILENAME=./post.php"));
+	putenv((char *)("SCRIPT_NAME=./post.php"));
+
+	putenv((char *)("SERVER_NAME=0"));
+	putenv((char *)("SERVER_PORT=8000"));
+	putenv((char *)("SERVER_PROTOCOL=HTTP/1.1"));
+	putenv((char *)("SERVER_SOFTWARE=Weebserv/1.0"));
+
+	putenv((char *)(""));
+
+	;
+};
 
 int main(int argc, char const *argv[])
 {
@@ -146,7 +198,7 @@ int main(int argc, char const *argv[])
 		putenv(env[i]);
 	}
 
-	std::cout << cgi(std::string(argv[1]), std::string(argv[2])) << std::endl;
+	std::cout << cgi_execution(std::string(argv[1]), std::string(argv[2])) << std::endl;
 
 	return 0;
 }
