@@ -134,11 +134,11 @@ std::string get_sub_str(std::string str, int pos)
 	return str.substr((pos != std::string::npos) ? pos : 0);
 }
 
-void set_environement(request req)
+void set_environement(request req,std::string absolutepath)
 {
 
-	putenv((char *)("CONTENT_LENGTH= " + tostr(req.request_body.length())).c_str());
-	putenv((char *)("CONTENT_TYPE=application/x-www-form-urlencoded"));
+	putenv((char *)("CONTENT_TYPE=" + req.instruction["Content-Length"]).c_str());
+	putenv((char *)("CONTENT_TYPE=" + req.instruction["Content-Type"]).c_str());
 
 	putenv((char *)("GATEWAY_INTERFACE=CGI/1.1"));
 
@@ -146,29 +146,32 @@ void set_environement(request req)
 	putenv((char *)("PATH_INFO=" + pathinf).c_str());
 	putenv((char *)("PATH_TRANSLATED=" + pathinf).c_str());
 
-	std::string query = get_sub_str(req.path, req.path.find_first_of("?"));
+	std::string query = (req.method == "GET") ? req.body : "";
 	putenv((char *)("QUERY_STRING=" + query).c_str());
 
 	putenv((char *)("REDIRECT_STATUS=200"));
 
-	putenv((char *)("REMOTE_IDENT="));
-	putenv((char *)("REMOTE_USER="));
-	putenv((char *)("REMOTEaddr=0"));
-
 	putenv((char *)("REQUEST_METHOD=" + req.methods).c_str());
-	putenv((char *)("REQUEST_URI=/post.php"));
+	putenv((char *)("REQUEST_URI=" + req.path).c_str());
 
-	putenv((char *)("SCRIPT_FILENAME=./post.php"));
-	putenv((char *)("SCRIPT_NAME=./post.php"));
+	putenv((char *)("SCRIPT_FILENAME="+req.filename).c_str());
+	putenv((char *)("SCRIPT_NAME="+absolutepath).c_str());
 
-	putenv((char *)("SERVER_NAME=0"));
-	putenv((char *)("SERVER_PORT=8000"));
+	std::string host = req.instruction["Host"].substr(0, req.instruction["Host"].find_first_of(":"));
+	std::string port = get_sub_str(req.instruction["Host"], req.instruction["Host"].find_first_of(":") + 1);
+
+	putenv((char *)("SERVER_NAME="+host).c_str());
+	putenv((char *)("SERVER_PORT="+port).c_str());
+
 	putenv((char *)("SERVER_PROTOCOL=HTTP/1.1"));
 	putenv((char *)("SERVER_SOFTWARE=Weebserv/1.0"));
 
-	putenv((char *)(""));
+	putenv((char *)("REMOTE_IDENT="+req.instruction["Authorization"]).c_str());
+	putenv((char *)("REMOTE_USER="+req.instruction["Authorization"]).c_str());
+	putenv((char *)("REMOTEaddr="+port).c_str());
+	if(req.instruction["Auth-Scheme"] != "")
+		putenv((char *)("AUTH_TYPE" + req.instruction["Authorization"]).c_str());
 
-	;
 };
 
 int main(int argc, char const *argv[])
